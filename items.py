@@ -8,6 +8,21 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Item(QtGui.QStandardItem):
+    """
+    The Item class used for all filter tree steps. 
+    The item can take any of the following types:
+    - Generic Item (unused)
+    - Input Item
+    - Filter Item
+    - Group Item
+    - Modifier Item
+
+    All except the Generic Item type can be automatically created using the
+    respective factory methods. 
+
+    All Item data is stored in the data structure of `QStandardItem` and
+    can be accessed directly as attributes of the `Item` instance. 
+    """
 
     #TYPE constants: use Item.type() to return item type
     FILTER_TYPE = QtGui.QStandardItem.UserType + 1
@@ -32,16 +47,13 @@ class Item(QtGui.QStandardItem):
         self.name = ""
         self.full_name = ""
         self.description = ""
-
         self.fn = None
         self.params = None
-
         self.is_active = True
         self.is_processed = False
         self.has_processing_error = False
         self.status_message = "Not processed"
         self.output = None
-
         self.id = str(time.time()) #Item id is the current time, converted to string. This ensures uniqueness
 
     def __getattribute__(self, name):
@@ -103,23 +115,46 @@ class Item(QtGui.QStandardItem):
             super().__setattr__(name, value)  
 
     def updateParam(self, name, value):
+        """ Update the value of a given parameter. """
         params = self.params
         params[name]['value'] = value
         self.params = params
 
     def resetId(self):
+        """ Reset the item's id """
         self.id = str(time.time())
 
     def clone(self, keep_id=False, keep_output=False, keep_children_mode='all', keep_children_output=False):
-        
+        """
+        Clone the item.
+
+        Parameters
+        ----------
+        keep_id : bool
+            If True, maintain the original item id
+        keep_output : bool
+            If True, maintain the original item's output. Otherwise output will be None. 
+        keep_children_mode : str
+            Must be one of the following:
+            - all: recursively copy all the item's children
+            - first: only copy the item's immediate children
+            - none: don't copy children
+        keep_children_output : bool
+            If True, maintain the children's output. 
+            Only has an effect if `keep_children_mode` is not `none`. 
+
+        Returns
+        -------
+        item : Item
+            The cloned Item instance
+        """
+
         item = Item()
         item.name = self.name
         item.full_name = self.full_name
         item.description = self.description
-        
         item.fn = self.fn
         item.params = copy.deepcopy(self.params)
-        
         item.is_active = self.is_active
 
         item.setData(self.type(), self.TYPE)
@@ -152,28 +187,56 @@ class Item(QtGui.QStandardItem):
         return item
 
     def setParamValueDict(self, params): 
+        """ 
+        Replace all parameter's values with the given values 
+        
+        Parameters
+        ----------
+        params : dict
+            Dictionary with name-value pairs for each parameter
+        """
+
         for name, value in params.items():
             self.updateParam(name, value)
 
     def getParamValueDict(self):
+        """
+        Return the parameter values dictionary. 
+
+        Returns
+        -------
+        params : dict
+            Dictionary with name-value pairs for each parameter
+        """
+
         params = collections.OrderedDict()
         for name, param in self.params.items():
             params[name] = param['value']
         return params
 
     def children(self):
-        child_count = self.rowCount()
+        """
+        Return iterable of all the item's children. 
+
+        Returns
+        -------
+        children : iterable
+            All the item's immediate children. 
+        """
+
         if self.hasChildren():
+            child_count = self.rowCount()
             for child_i in range(child_count):
                 yield self.child(child_i)
 
     def type(self):
+        """ Return the item's type role """
         return self.data(self.TYPE)
 
-    @staticmethod
-    def createFilterItem(name, full_name, description="", fn=None, params=collections.OrderedDict()):
+    @classmethod
+    def createFilterItem(cls, name, full_name, description="", fn=None, params=collections.OrderedDict()):
         
-        item = Item()
+        item = cls()
 
         item.name = name
         item.full_name = full_name
@@ -182,7 +245,7 @@ class Item(QtGui.QStandardItem):
         item.fn = fn
         if params: 
             try: 
-                item.params = Item._initializeFilterParams(params)
+                item.params = cls._initializeFilterParams(params)
             except ParameterError as e:
                 print("Parameter error in item {}: ".format(name), e)
                 item.params = collections.OrderedDict()
@@ -202,16 +265,16 @@ class Item(QtGui.QStandardItem):
             'single_step': 0.1,
             'decimals': 2}
 
-        item.setData(Item.FILTER_TYPE, Item.TYPE)
-        item.setData(Item._getIcon(item), QtCore.Qt.DecorationRole)
-        item.setFlags(Item._getFlags(item))
+        item.setData(cls.FILTER_TYPE, cls.TYPE)
+        item.setData(cls._getIcon(item), QtCore.Qt.DecorationRole)
+        item.setFlags(cls._getFlags(item))
         
         return item
 
-    @staticmethod
-    def createGroupItem():
+    @classmethod
+    def createGroupItem(cls):
 
-        item = Item()
+        item = cls()
 
         item.name = 'group'
         item.full_name = 'Group'
@@ -232,16 +295,16 @@ class Item(QtGui.QStandardItem):
             'single_step': 0.1,
             'decimals': 2}
 
-        item.setData(Item.GROUP_TYPE, Item.TYPE)
-        item.setData(Item._getIcon(item), QtCore.Qt.DecorationRole)
-        item.setFlags(Item._getFlags(item))
+        item.setData(cls.GROUP_TYPE, cls.TYPE)
+        item.setData(cls._getIcon(item), QtCore.Qt.DecorationRole)
+        item.setFlags(cls._getFlags(item))
 
         return item
 
-    @staticmethod
-    def createModifierItem():
+    @classmethod
+    def createModifierItem(cls):
         
-        item = Item()
+        item = cls()
 
         item.name = 'modifier'
         item.full_name = 'Modifier'
@@ -279,16 +342,16 @@ class Item(QtGui.QStandardItem):
                 'single_step': 0.1,
                 'decimals': 2}})
 
-        item.setData(Item.MODIFIER_TYPE, Item.TYPE) 
-        item.setData(Item._getIcon(item), QtCore.Qt.DecorationRole)
-        item.setFlags(Item._getFlags(item))
+        item.setData(cls.MODIFIER_TYPE, cls.TYPE) 
+        item.setData(cls._getIcon(item), QtCore.Qt.DecorationRole)
+        item.setFlags(cls._getFlags(item))
 
-        return item
+        return item 
 
-    @staticmethod
-    def createInputItem(input_path=None):
+    @classmethod
+    def createInputItem(cls,input_path=None):
 
-        item = Item()
+        item = cls()
         
         item.name = 'input_item'
         item.full_name = 'Input Image'
@@ -317,9 +380,9 @@ class Item(QtGui.QStandardItem):
                 'single_step': 0.1,
                 'decimals': 2}})
 
-        item.setData(Item.INPUT_TYPE, Item.TYPE) 
-        item.setData(Item._getIcon(item), QtCore.Qt.DecorationRole)
-        item.setFlags(Item._getFlags(item))
+        item.setData(cls.INPUT_TYPE, cls.TYPE)
+        item.setData(cls._getIcon(item), QtCore.Qt.DecorationRole)
+        item.setFlags(cls._getFlags(item))
 
         if input_path:
             item.updateParam('input_path',input_path)
