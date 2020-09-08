@@ -8,7 +8,7 @@ from tree.items import Item
 from filters.defaults import DEFAULTS
 
 
-class TreeModel(QtGui.QStandardItemModel): 
+class FilterTree(QtGui.QStandardItemModel): 
     INSERT_SUCCESSFUL = 0
     INSERT_FAILED = 1
 

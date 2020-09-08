@@ -1,0 +1,41 @@
+[
+    {
+        "name": "input_image",
+        "full_name": "Input Image",
+        "description": "The tree's input image",
+        "type": "input_image",
+        "params":
+        [
+            {
+                "name": "path",
+                "full_name": "Input path",
+                "description": "Local image path",
+                "optional": true,
+                "wtype": "lineedit",
+                "dtype": "str",
+                "default": "",
+                "value": "samples/test.jpg"
+            }
+        ],
+        "save_info":
+        [
+            {
+                "type": "disk",
+                "path": "output/test"
+            },
+            {
+                "type": "web",
+                "path": "s3.amazonaws.com/isdkfoisjfd",
+                "properties":
+                {
+                    "user": "name",
+                    "pass": "12345678"
+                }
+            }
+        ],
+        "children":
+        [
+            
+        ]
+    }
+]
