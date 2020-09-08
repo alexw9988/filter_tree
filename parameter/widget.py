@@ -1,10 +1,10 @@
 
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from parameters.parameter import Parameter
+from parameter.delegates import ValueDelegate
 
 
-class ParameterWidget(QtWidgets.QTreeWidget):
+class ParameterWidget(QtWidgets.QTreeView):
     def __init__(self, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setModel(model)
