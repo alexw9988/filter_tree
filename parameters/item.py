@@ -4,7 +4,7 @@ import json
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class NameItem(QtGui.QStandardItem):
+class NameWidget(QtWidgets.QTreeWidgetItem):
     ROLE_TYPE = QtCore.Qt.UserRole + 1
     ROLE_FULL_NAME = QtCore.Qt.DisplayRole
     ROLE_DESCRIPTION = QtCore.Qt.ToolTipRole
@@ -14,7 +14,7 @@ class NameItem(QtGui.QStandardItem):
     def __init__(self, opts, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.opts = opts
-
+        
         self.type = opts['type']
         self.full_name = opts['full_name']
         self.description = opts['description']
@@ -66,7 +66,7 @@ class NameItem(QtGui.QStandardItem):
         flags |= QtCore.Qt.ItemIsSelectable
         return flags
 
-class ValueItem(QtGui.QStandardItem):
+class ValueWidget(QtWidgets.QTreeWidgetItem):
     ROLE_TYPE = QtCore.Qt.UserRole + 1
     ROLE_VALUE = QtCore.Qt.DisplayRole
     ROLE_DEFAULT = QtCore.Qt.UserRole + 100
