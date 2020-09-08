@@ -1,12 +1,27 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from parameter.item import ValueItem
+from parameters.item import NameItem, ValueItem
+
+
+class NameDelegate(QtWidgets.QStyledItemDelegate):
+    def __init__(self):
+        super().__init__()
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        if index.data(NameItem.ROLE_TYPE) == 'group':
+            option.features &= ~QtWidgets.QStyleOptionViewItem.HasCheckIndicator
 
 
 class ValueDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        if index.data(NameItem.ROLE_TYPE) == 'group':
+            option.features &= ~QtWidgets.QStyleOptionViewItem.HasDisplay
 
     def createEditor(self, parent, option, index):
         t = index.data(ValueItem.ROLE_TYPE)
@@ -50,6 +65,7 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
 
         elif t == 'bool':
             w = QtWidgets.QCheckBox(parent=parent)
+            w.autoFillBackground = True
             w.setText("active")
             w.setCheckState(v)
 
@@ -60,3 +76,5 @@ class ValueDelegate(QtWidgets.QStyledItemDelegate):
             return super().createEditor(parent, option, index)
 
         return w
+
+    

@@ -57,10 +57,7 @@ class NameItem(QtGui.QStandardItem):
             super().__setattr__(name, value)
 
     def _getFlags(self):
-        if self.type == 'group':
-            flags = QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsAutoTristate
-        else:
-            flags = QtCore.Qt.ItemIsEnabled
+        flags = QtCore.Qt.ItemIsEnabled
         if self.optional:
             flags |= QtCore.Qt.ItemIsUserCheckable
         flags |= QtCore.Qt.ItemIsSelectable
@@ -114,11 +111,7 @@ class ValueItem(QtGui.QStandardItem):
             super().__setattr__(name, value)
 
     def _getFlags(self):
-        if self.type == 'group':
-            flags = QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsAutoTristate
-        else:
-            flags = QtCore.Qt.ItemIsEnabled
-        flags |= QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable
+        flags = QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable
         return flags
 
 
@@ -182,7 +175,6 @@ class Parameter(QtCore.QObject):
         if not isinstance(opts, dict):
             raise TypeError("Parameter options must be passed as dict!")
         
-        print("verifying opts:",opts)
         keys = opts.keys()
 
         if not 'full_name' in keys:

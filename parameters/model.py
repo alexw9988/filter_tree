@@ -1,7 +1,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from parameter.item import Parameter
+from parameters.item import Parameter
 
 
 class ParameterModel(QtGui.QStandardItemModel):
