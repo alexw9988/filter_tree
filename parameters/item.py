@@ -11,8 +11,11 @@ class NameItem(QtGui.QStandardItem):
     ROLE_OPTIONAL = QtCore.Qt.UserRole + 100
     ROLE_IS_ACTIVE = QtCore.Qt.CheckStateRole
 
-    def __init__(self, opts, *args, **kwargs):
+    def __init__(self, param, opts, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._readonly = False
+
+        self.param = param
         self.opts = opts
 
         self.type = opts['type']
@@ -22,6 +25,16 @@ class NameItem(QtGui.QStandardItem):
         self.is_active = opts['is_active']
 
         self.setFlags(self._getFlags())
+    
+    def setReadonly(self, readonly=True):
+        if readonly == self._readonly:
+            return 
+        else: 
+            self._readonly = readonly
+            self.setFlags(self._getFlags())
+
+    def isReadonly(self):
+        return self._readonly
 
     def __getattribute__(self, name):
         if name == 'type':
@@ -61,7 +74,10 @@ class NameItem(QtGui.QStandardItem):
         if self.optional:
             flags |= QtCore.Qt.ItemIsUserCheckable
         flags |= QtCore.Qt.ItemIsSelectable
+        if self.isReadonly():
+            flags &= ~QtCore.Qt.ItemIsEnabled 
         return flags
+
 
 class ValueItem(QtGui.QStandardItem):
     ROLE_TYPE = QtCore.Qt.UserRole + 1
@@ -70,8 +86,9 @@ class ValueItem(QtGui.QStandardItem):
     ROLE_DESCRIPTION = QtCore.Qt.ToolTipRole
     ROLE_PROPERTIES = QtCore.Qt.UserRole + 200
 
-    def __init__(self, opts, *args, **kwargs):
+    def __init__(self, param, opts, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.param = param 
         self.opts = opts
         
         self.type = opts['type']
@@ -80,8 +97,19 @@ class ValueItem(QtGui.QStandardItem):
         self.description = opts['description']
         self.properties = opts['properties']
 
+        self._readonly = False
         self.setFlags(self._getFlags())
-        
+    
+    def setReadonly(self, readonly=True):
+        if readonly == self._readonly:
+            return 
+        else: 
+            self._readonly = readonly
+            self.setFlags(self._getFlags())
+
+    def isReadonly(self):
+        return self._readonly
+
     def __getattribute__(self, name):
         if name == 'type':
             return self.data(self.ROLE_TYPE) 
@@ -112,6 +140,9 @@ class ValueItem(QtGui.QStandardItem):
 
     def _getFlags(self):
         flags = QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsSelectable|QtCore.Qt.ItemIsEditable
+        if self.isReadonly():
+            flags &= ~QtCore.Qt.ItemIsEnabled
+
         return flags
 
 
@@ -124,8 +155,31 @@ class Parameter(QtCore.QObject):
         self.children = {}
         self._appendChildren(opts['children'])
 
-        self.name_item = NameItem(opts)
-        self.value_item = ValueItem(opts)
+        self.name_item = NameItem(self, opts)
+        self.value_item = ValueItem(self, opts)
+
+        self._readonly = False
+
+    def setReadonly(self, readonly=True):
+        self._readonly = readonly
+        self.name_item.setReadonly(readonly=readonly)
+        self.value_item.setReadonly(readonly=readonly)
+        
+    def isReadonly(self):
+        return self._readonly
+
+    def serialize(self): 
+        return {
+            'type': self.type, 
+            'full_name': self.full_name,
+            'description': self.description,
+            'optional': self.optional, 
+            'is_active': self.is_active,
+            'value': self.value,
+            'default': self.default,
+            'properties': self.properties,
+            'children': {name: child.serialize() for name, child in self.children.items()}
+        }
 
     def _appendChildren(self, children_dict):
         for child_name, child_opts in children_dict.items():
@@ -143,7 +197,10 @@ class Parameter(QtCore.QObject):
         elif name == 'is_active':
             return self.name_item.is_active
         elif name == 'value':
-            return self.value_item.value
+            if self.type == 'named_list': 
+                return self.opts['properties']['options'][self.value_item.value]
+            else: 
+                return self.value_item.value
         elif name == 'default':
             return self.value_item.default
         elif name == 'properties':
@@ -318,26 +375,9 @@ class Parameter(QtCore.QObject):
 
         return p 
 
-    # def __repr__(self):
-    #     return json.dumps(self.serialize())
+    def __repr__(self):
+        return json.dumps(self.serialize())
 
-    # __str__ = __repr__
-
-    # def clone(self):
-    #     ob = self.serialize()
-    #     return ParameterItem.createInstance(ob)
-    
-    # def serialize(self):
-    #     return {
-    #         'name': self.name,
-    #         'full_name': self.full_name,
-    #         'description': self.description,
-    #         'optional': self.optional,
-    #         'wtype': self.wtype,
-    #         'dtype': self._convertDTypeToString(self.dtype),
-    #         'value': self.value,
-    #         'default': self.default,
-    #         'properties': self.properties
-    #     }
+    __str__ = __repr__
 
    
