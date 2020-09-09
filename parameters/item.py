@@ -210,11 +210,13 @@ class Parameter(QtCore.QObject):
 
     def __setattr__(self, name, value):
         if name == 'type':
+            self.name_item.type = value
             self.value_item.type = value
         elif name == 'full_name':
             self.name_item.full_name = value
         elif name == 'description':
             self.name_item.description = value
+            self.value_item.description = value
         elif name == 'optional':
             self.name_item.optional = value
         elif name == 'is_active':
@@ -224,7 +226,7 @@ class Parameter(QtCore.QObject):
         elif name == 'default':
             self.value_item.default = value
         elif name == 'properties':
-            self.value_item.properties
+            self.value_item.properties = value
         else:
             super().__setattr__(name, value)
 

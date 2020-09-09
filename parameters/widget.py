@@ -4,10 +4,11 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from parameters.delegates import NameDelegate, ValueDelegate
 
 
-class ParameterWidget(QtWidgets.QTreeView):
-    def __init__(self, model, readonly=False, *args, **kwargs):
+class ParameterView(QtWidgets.QTreeView):
+    def __init__(self, model=None, readonly=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setModel(model)
+        if model: 
+            self.setModel(model)
         self._readonly = readonly
 
         #Delegate stuff 
@@ -23,6 +24,7 @@ class ParameterWidget(QtWidgets.QTreeView):
         self.setHorizontalScrollMode(self.ScrollPerPixel)
         self.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setEditTriggers(self.CurrentChanged|self.DoubleClicked|self.SelectedClicked|self.EditKeyPressed)
+        self.setSelectionMode(self.SingleSelection)
         self.expandAll()
         self.setAlternatingRowColors(True)
         

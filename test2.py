@@ -1,8 +1,7 @@
 import sys
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from parameters.widget import ParameterWidget
-from parameters.model import ParameterModel
+import parameters
 
 
 params = {
@@ -18,14 +17,14 @@ params = {
 app = QtWidgets.QApplication(sys.argv)
 mw = QtWidgets.QMainWindow()
 
-model = ParameterModel.createModel(params)
+model = parameters.ParameterModel.createModel(params)
 model.signal_parameter_changed.connect(lambda param: print("parameter changed:",param.name))
 model.signal_parameter_enabled.connect(lambda param: print("parameter enabled:",param.name))
 state = model.serialize()
-model = ParameterModel.createModel(state)
+model = parameters.ParameterModel.createModel(state)
 print(model.getValues())
-central = ParameterWidget(model, readonly=False)
-central.setReadonly()
+central = parameters.ParameterWidget(model, readonly=False)
+central.setReadonly(readonly=False)
 mw.setCentralWidget(central)
 mw.show()
 app.exec()
