@@ -6,12 +6,12 @@ from parameters.elements import *
 
 
 class NameDelegate(QtWidgets.QStyledItemDelegate):
+    """
+    The NameDelegate is used in the first column of a ParameterView.
+    For group parameters, the check indicator is removed. 
+    """
     def __init__(self):
         super().__init__()
-
-    def sizeHint(self, option, index):
-        size = super().sizeHint(option, index)
-        return QtCore.QSize(size.width(), 30)
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
@@ -20,8 +20,17 @@ class NameDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class ValueDelegate(QtWidgets.QStyledItemDelegate):
+    """
+    The ValueDelegate is used in the second column of a ParameterView. 
+    It ensures that an approriate editor is shown when clicking the item
+    and that the editor's value is stored in the model again.  
+    """
     def __init__(self):
         super().__init__()
+
+    def sizeHint(self, option, index):
+        size = super().sizeHint(option, index)
+        return QtCore.QSize(size.width(), 30)
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)

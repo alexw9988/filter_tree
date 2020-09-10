@@ -1,23 +1,41 @@
 
-import json
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class NameItem(QtGui.QStandardItem):
+    """
+    The name item is used to display the Parameter's full name 
+    alongside a checkbox, which can be used to determine this 
+    parameter's active state (unchecked means the parameter value
+    will not be passed to the function). Only optional parameters
+    can be unchecked.
+
+    type, full_name, description, optional, is_active are all stored
+    as part of the item's internal data structure and can be accessed
+    directly as attributes. 
+    """
     ROLE_TYPE = QtCore.Qt.UserRole + 1
     ROLE_FULL_NAME = QtCore.Qt.DisplayRole
     ROLE_DESCRIPTION = QtCore.Qt.ToolTipRole
     ROLE_OPTIONAL = QtCore.Qt.UserRole + 100
     ROLE_IS_ACTIVE = QtCore.Qt.CheckStateRole
 
-    def __init__(self, param, opts, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, param):
+        """
+        Initialize a NameItem instance.
+
+        Parameters
+        ----------
+        param : filter_tree.parameters.item.Parameter
+            The Parameter object that this NameItem belongs to
+        """
+        super().__init__()
         self._readonly = False
 
         self.param = param
-        self.opts = opts
+        self.opts = opts = param.opts
 
+        #Extract Parameter's opts and assign them to internal data structure
         self.type = opts['type']
         self.full_name = opts['full_name']
         self.description = opts['description']
@@ -27,6 +45,7 @@ class NameItem(QtGui.QStandardItem):
         self.setFlags(self._getFlags())
     
     def setReadonly(self, readonly=True):
+        """ Set the item's appearence to read-only """
         if readonly == self._readonly:
             return 
         else: 
@@ -34,6 +53,7 @@ class NameItem(QtGui.QStandardItem):
             self.setFlags(self._getFlags())
 
     def isReadonly(self):
+        """ Return the item's read-only state """
         return self._readonly
 
     def __getattribute__(self, name):
@@ -80,17 +100,36 @@ class NameItem(QtGui.QStandardItem):
 
 
 class ValueItem(QtGui.QStandardItem):
-    ROLE_TYPE = QtCore.Qt.UserRole + 1
-    ROLE_VALUE = QtCore.Qt.DisplayRole
-    ROLE_DEFAULT = QtCore.Qt.UserRole + 100
-    ROLE_DESCRIPTION = QtCore.Qt.ToolTipRole
-    ROLE_PROPERTIES = QtCore.Qt.UserRole + 200
+    """
+    The ValueItem is used to display the parameter's value. A custom
+    delegate (i.e. <filter_tree.parameters.delegates.ValueDelegate>) can
+    make use of this item to display an appropriate editor and allow
+    resetting the value to default. 
 
-    def __init__(self, param, opts, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    type, value, default, description, properties are all stored
+    as part of the item's internal data structure and can be accessed
+    directly as attributes. 
+    """
+    ROLE_TYPE = QtCore.Qt.UserRole + 100
+    ROLE_VALUE = QtCore.Qt.DisplayRole
+    ROLE_DEFAULT = QtCore.Qt.UserRole + 200
+    ROLE_DESCRIPTION = QtCore.Qt.ToolTipRole
+    ROLE_PROPERTIES = QtCore.Qt.UserRole + 300
+
+    def __init__(self, param):
+        """
+        Initialize a ValueItem instance.
+
+        Parameters
+        ----------
+        param : filter_tree.parameters.item.Parameter
+            The Parameter object that this ValueItem belongs to
+        """
+        super().__init__()
         self.param = param 
-        self.opts = opts
+        self.opts = opts = param.opts
         
+        #Extract Parameter's opts and assign them to internal data structure
         self.type = opts['type']
         self.value = opts['value']
         self.default = opts['default']
@@ -101,6 +140,7 @@ class ValueItem(QtGui.QStandardItem):
         self.setFlags(self._getFlags())
     
     def setReadonly(self, readonly=True):
+        """ Set the item's appearence to read-only """
         if readonly == self._readonly:
             return 
         else: 
@@ -108,6 +148,7 @@ class ValueItem(QtGui.QStandardItem):
             self.setFlags(self._getFlags())
 
     def isReadonly(self):
+        """ Return the item's read-only state """
         return self._readonly
 
     def __getattribute__(self, name):
@@ -147,16 +188,47 @@ class ValueItem(QtGui.QStandardItem):
 
 
 class Parameter(QtCore.QObject):
+    """
+    The `Parameter` object is used to store all information associated
+    with a parameter. It has two members, `name_item` and `value_item`, 
+    which are used to populate a `ParameterModel`. 
+
+    A parameter can have any number of children, which can be accessed
+    via its `children` member. 
+    """
+
     def __init__(self, name, opts):
+        """
+        Initialize the `Parameter` object.
+
+        Parameters
+        ----------
+        name : str
+            The parameter's internal name. Should be unique. 
+        opts : dict
+            The parameter's options dict, containing the following:
+            - type: group, int, float, string, list, named_list, bool
+            - full_name (optional)
+            - description (optional)
+            - optional (optional): if true, the parameter can be set 
+              to inactive 
+            - is_active (optional)
+            - value (optional)
+            - default (optional for type='group')
+            - properties (optional): a dict containing information 
+              like 'options', 'option_descriptions', 'maximum', 'minimum',
+              'single_step', ...
+            - children (optional): a list of all child parameters
+        """
         super().__init__()
         self.name = name
         self.opts = opts = self._verifyOpts(opts)
 
-        self.children = {}
+        self.children = []
         self._appendChildren(opts['children'])
 
-        self.name_item = NameItem(self, opts)
-        self.value_item = ValueItem(self, opts)
+        self.name_item = NameItem(self)
+        self.value_item = ValueItem(self)
 
         self._readonly = False
 
@@ -169,6 +241,10 @@ class Parameter(QtCore.QObject):
         return self._readonly
 
     def serialize(self): 
+        """ 
+        Return a serial representation of the `Parameter` and all its 
+        children.
+        """
         return {
             'type': self.type, 
             'full_name': self.full_name,
@@ -178,12 +254,12 @@ class Parameter(QtCore.QObject):
             'value': self.value,
             'default': self.default,
             'properties': self.properties,
-            'children': {name: child.serialize() for name, child in self.children.items()}
+            'children': {child.name: child.serialize() for child in self.children}
         }
 
     def _appendChildren(self, children_dict):
         for child_name, child_opts in children_dict.items():
-            self.children[child_name] = Parameter(child_name, child_opts)
+            self.children.append(Parameter(child_name, child_opts))
 
     def __getattribute__(self, name):
         if name == 'type':
@@ -378,8 +454,9 @@ class Parameter(QtCore.QObject):
         return p 
 
     def __repr__(self):
-        return json.dumps(self.serialize())
+        return str(self.serialize())
 
-    __str__ = __repr__
+    def __str__(self):
+        return "<Parameter>"+repr(self)
 
    

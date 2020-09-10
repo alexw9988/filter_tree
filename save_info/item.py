@@ -1,6 +1,4 @@
 
-import json
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -113,7 +111,24 @@ class PathItem(QtGui.QStandardItem):
 
 
 class Save(QtCore.QObject):
+    """
+    The `Save` object is used to store all information associated
+    with a save entry. It has two members, `type_item` and `path_item`, 
+    which are used to populate a `SaveModel`. 
+    """
     def __init__(self, opts):
+        """
+        Initialize the `Parameter` object.
+
+        Parameters
+        ----------
+        opts : dict
+            The save's options dict, containing the following:
+            - 'type': either 'disk' or 'web'
+            - 'path' (optional): the save path or url
+            - 'is_active' (optional): True or False 
+            - 'properties' (optional)
+        """
         super().__init__()
         self.opts = opts = self._verifyOpts(opts)
 
@@ -131,20 +146,21 @@ class Save(QtCore.QObject):
         return self._readonly
 
     def serialize(self): 
+        """ Return a serial representation of the `Save`. """
         return {
             'type': self.type, 
-            'is_active': self.is_active,
             'path': self.path,
+            'is_active': self.is_active,
             'properties': self.properties
             }
 
     def __getattribute__(self, name):
         if name == 'type':
             return self.type_item.type
+        elif name == 'path':
+            return self.path_item.path
         elif name == 'is_active':
             return self.type_item.is_active
-        elif name == 'path':
-            return self.path_item.default
         elif name == 'properties':
             return self.path_item.properties
         else:
@@ -154,10 +170,10 @@ class Save(QtCore.QObject):
         if name == 'type':
             self.type_item.type = value
             self.path_item.type = value 
+        elif name == 'path':
+            self.path_item.path = values
         elif name == 'is_active':
             self.type_item.is_active = value
-        elif name == 'path':
-            self.path_item.path = value
         elif name == 'properties':
             self.path_item.properties = value
         else:
@@ -215,8 +231,9 @@ class Save(QtCore.QObject):
         return p 
 
     def __repr__(self):
-        return json.dumps(self.serialize())
+        return str(self.serialize())
 
-    __str__ = __repr__
+    def __str__(self):
+        return "<Save>"+repr(self)
 
    

@@ -15,7 +15,7 @@ app = QtWidgets.QApplication(sys.argv)
 mw = QtWidgets.QMainWindow()
 
 model = save_info.SaveModel.createModel(saves_list=saves_list)
-
+print(model.saves[0])
 # model = parameters.ParameterModel.createModel(params)
 # model.signal_parameter_changed.connect(lambda param: print("parameter changed:",param.name))
 # model.signal_parameter_enabled.connect(lambda param: print("parameter enabled:",param.name))

@@ -1,7 +1,5 @@
-import sys
-from PyQt5 import QtCore, QtWidgets, QtGui
 
-import parameters
+from parameters import ParameterModel
 
 
 params = {
@@ -14,18 +12,4 @@ params = {
     }
     }}
 
-app = QtWidgets.QApplication(sys.argv)
-mw = QtWidgets.QMainWindow()
-
-model = parameters.ParameterModel.createModel(params)
-model.signal_parameter_changed.connect(lambda param: print("parameter changed:",param.name))
-model.signal_parameter_toggled.connect(lambda param: print("parameter enabled:",param.name))
-
-
-
-central = parameters.ParameterView(model, readonly=False)
-central.setReadonly(readonly=False)
-mw.setCentralWidget(central)
-mw.show()
-
-app.exec()
+model = ParameterModel.createModel(params)

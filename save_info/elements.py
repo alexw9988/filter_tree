@@ -39,7 +39,8 @@ class DiskPathEdit(_PathEdit):
         super().__init__(editor_type, *args, **kwargs)
         
     def onOpen(self):
-        path = QtWidgets.QFileDialog.getExistingDirectory(self.parent, "Choose save directory", self.text())
+        path = QtWidgets.QFileDialog.getExistingDirectory(
+            self.parent, "Choose save directory", self.text())
         if path != "": 
             self.setText(path)
 
@@ -50,6 +51,7 @@ class UrlPathEdit(_PathEdit):
         super().__init__(editor_type, *args, **kwargs)
 
     def onOpen(self):
-        path = QtWidgets.QFileDialog.getExistingDirectoryUrl(self.parent, "Choose save url", QtCore.QUrl(self.text()))
+        path = QtWidgets.QFileDialog.getExistingDirectoryUrl(
+            self.parent, "Choose save url", QtCore.QUrl(self.text()))
         if path.isValid(): 
             self.setText(path.toString())
