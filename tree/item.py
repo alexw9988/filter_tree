@@ -4,7 +4,8 @@ from collections.abc import MutableMapping
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from parameter.model import ParameterModel
+from parameters import ParameterModel
+from save_info import SaveModel
 
 
 class FilterItem(QtGui.QStandardItem):
@@ -26,11 +27,11 @@ class FilterItem(QtGui.QStandardItem):
 
     #TYPE constants
     TYPE_GENERIC = QtGui.QStandardItem.UserType + 0
-    TYPE_FILTER = QtGui.QStandardItem.UserType + 1
-    TYPE_MODIFIER = QtGui.QStandardItem.UserType + 2
-    TYPE_GROUP = QtGui.QStandardItem.UserType + 3
-    TYPE_INPUT = QtGui.QStandardItem.UserType + 10
-    TYPE_OUTPUT = QtGui.QStandardItem.UserType + 11
+    TYPE_FILTER = QtGui.QStandardItem.UserType + 10
+    TYPE_MODIFIER = QtGui.QStandardItem.UserType + 20
+    TYPE_GROUP = QtGui.QStandardItem.UserType + 30
+    TYPE_INPUT = QtGui.QStandardItem.UserType + 40
+    TYPE_OUTPUT = QtGui.QStandardItem.UserType + 50
 
     #DATA ROLE constants: use with setData(value, role) or data(role)
     ROLE_TYPE = QtCore.Qt.UserRole + 100
@@ -43,14 +44,15 @@ class FilterItem(QtGui.QStandardItem):
     ROLE_STATUS_MESSAGE = QtCore.Qt.UserRole + 502
     ROLE_OUTPUT = QtCore.Qt.UserRole + 600
     ROLE_FN = QtCore.Qt.UserRole + 700
-    ROLE_PARAMS = QtCore.Qt.UserRole + 701
-    ROLE_SAVE_INFO = QtCore.Qt.UserRole + 800
+    ROLE_PARAM_MODEL = QtCore.Qt.UserRole + 701
+    ROLE_SAVE_MODEL = QtCore.Qt.UserRole + 800
     ROLE_ID = QtCore.Qt.UserRole + 900
     ROLE_ICON = QtCore.Qt.DecorationRole
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        print("initializing item")
         self.type = self.TYPE_GENERIC
         self.name = ""
         self.full_name = ""
@@ -61,10 +63,19 @@ class FilterItem(QtGui.QStandardItem):
         self.status_message = "Not processed"
         self.output = None
         self.fn = None
-        self.params = None
-        self.save_info = None
+        print("creating param_model")
+        param_model = ParameterModel.createModel()
+        print("param_model", param_model)
+        self.param_model = param_model
+        print("param_model", self.param_model)
+        self.save_model = SaveModel.createModel()
+        print("save_model", self.save_model)
         self.id = str(time.time()) #Item id is the current time, converted to string. This ensures uniqueness
+        print("initializing item done")
         
+        
+        print("self",self)
+
     def __getattribute__(self, name):
         if name == 'type':
             return self.data(self.ROLE_TYPE)
@@ -87,10 +98,10 @@ class FilterItem(QtGui.QStandardItem):
             return self.data(self.ROLE_OUTPUT)
         elif name == 'fn':
             return self.data(self.ROLE_FN)
-        elif name == 'params':
-            return self.data(self.ROLE_PARAMS)
-        elif name == 'save_info':
-            return self.data(self.ROLE_SAVE_INFO)
+        elif name == 'param_model':
+            return self.data(self.ROLE_PARAM_MODEL)
+        elif name == 'save_model':
+            return self.data(self.ROLE_SAVE_MODEL)
         elif name == 'id':
             return self.data(self.ROLE_ID)
         elif name == 'icon':
@@ -119,10 +130,10 @@ class FilterItem(QtGui.QStandardItem):
             self.setData(value, self.ROLE_OUTPUT)
         elif name == 'fn':
             self.setData(value, self.ROLE_FN)
-        elif name == 'params':
-            self.setData(value, self.ROLE_PARAMS)
-        elif name == 'save_info':
-            self.setData(value, self.ROLE_SAVE_INFO)
+        elif name == 'param_model':
+            self.setData(value, self.ROLE_PARAM_MODEL)
+        elif name == 'save_model':
+            self.setData(value, self.ROLE_SAVE_MODEL)
         elif name == 'id':
             self.setData(value, self.ROLE_ID)
         elif name == 'type':
@@ -133,99 +144,158 @@ class FilterItem(QtGui.QStandardItem):
         else:
             super().__setattr__(name, value) 
     
-    def __repr__(self):
-        return str(self.serialize())
+    def appendChild(self, item):
+        if not isinstance(item, FilterItem):
+            raise TypeError("Can only append <FilterItems> as children, not {}".format(type(item)))
+        if not self.type in [self.TYPE_GROUP, self.TYPE_MODIFIER, self.TYPE_OUTPUT]:
+            raise Exception("Only groups, modifiers or outputs can have children!")
+        self.appendRow(item)
 
-    __str__ = __repr__ 
-    
+    def removeChild(self, item=None, row=None):
+        if item:
+            if not isinstance(item, FilterItem):
+                raise TypeError("Can only remove <FilterItems> from children, not {}".format(type(item)))
+            for child in self.children():
+                if item is child:
+                    take_row = item.row()
+                    self.takeRow(take_row)
+                    return
+            raise Exception("Cannot remove item that isn't a child!")
+        elif row:
+            if 0 > row > self.rowCount()-1:
+                raise Exception("Cannot remove child. Invalid row number!")
+            else:
+                self.takeRow(row)
+        
     def children(self):
-        child_count = self.rowCount()
-        for child_i in range(child_count):
+        for child_i in range(self.rowCount()):
             yield self.child(child_i)
 
-    def clone(self, keep_output=False, keep_children='all',keep_children_output=True):
-        pass 
+    def clone(self, keep_output=False, keep_children='all', keep_children_output=False):
+        print("starting clone")
+        obj = FilterItem.createItem(self.serialize(include_children=False))
+        if keep_output:
+            obj.output = self.output
+            print("cloned output")
+        if keep_children == 'all':
+            for child in self.children():
+                obj.appendChild(
+                    child.clone(
+                        keep_output=keep_children_output, 
+                        keep_children='all', 
+                        keep_children_output=keep_children_output
+                    )
+                )
+        elif keep_children == 'first':
+            for child in self.children():
+                obj.appendChild(
+                    child.clone(
+                        keep_output=keep_children_output,
+                        keep_children='none'
+                    )
+                )
+        
+        print("returning clone",obj)
+        return obj
 
-    def serialize(self):
-        return {
+    def serialize(self, include_children=True):
+        retval = {
             'type': self.type,
             'name': self.name,
             'full_name': self.full_name,
             'description': self.description,
             'is_active': self.is_active,
             'fn': self.fn,
-            'params': self.params,
-            'save_info': self.save_info,
-            'children': [child.serialize() for child in self.children()]
+            'param_model': self.param_model.serialize(),
+            'save_model': self.save_model.serialize()
         } 
+        if include_children:
+            retval['children'] = [child.serialize() for child in self.children()]
+        return retval
 
     def _getIcon(self):
 
-        if self.type() == self.TYPE_FILTER:
+        if self.type == self.TYPE_FILTER:
             return QtGui.QIcon('resources/filter.png')
-        elif self.type() == self.TYPE_MODIFIER:
+        elif self.type == self.TYPE_MODIFIER:
             return QtGui.QIcon('resources/modifier.png')
-        elif self.type() == self.TYPE_GROUP:
+        elif self.type == self.TYPE_GROUP:
             return QtGui.QIcon('resources/folder.png')
-        elif self.type() == self.TYPE_INPUT:
+        elif self.type == self.TYPE_INPUT:
             return QtGui.QIcon('resources/input.png')
-        elif self.type() == self.TYPE_OUTPUT:
+        elif self.type == self.TYPE_OUTPUT:
             return QtGui.QIcon()
         else:
             return QtGui.QIcon()
 
     @classmethod
-    def create(self):
-        pass
-
-    @classmethod
-    def toInstance(cls, ob):
-        if not isinstance(ob, MutableMapping):
-            raise TypeError("Items must be passed as dict-like objects, not as {}!".format(type(ob)))
-            
-        keys = ob.keys()
+    def createItem(cls, item_dict):
+        if not isinstance(item_dict, MutableMapping):
+            raise TypeError("Items must be passed as dict-like objects, not as {}!".format(type(item_dict)))
+        
+        keys = item_dict.keys()
+        print("creating item")
         obj = cls()
+        print("created item1",obj)
 
         #Check required arguments
         if 'type' in keys:
-            type_ = ob['type']
-            if isinstance(type_, int):
-                obj.type = type_
-            elif isinstance(type_, str):
-                type_ = type_.lower().strip()
-                if type_ in ['generic', 'default', 'none']:
-                    obj.type = cls.TYPE_GENERIC
-                elif type_ in ['filter']:
-                    obj.type = cls.TYPE_FILTER
-                elif type_ in ['modifier']:
-                    obj.type = cls.TYPE_MODIFIER
-                elif type_ in ['group', 'folder']:
-                    obj.type = cls.TYPE_GROUP
-                elif type_ in ['input', 'in']:
-                    obj.type = cls.TYPE_INPUT
-                elif type_ in ['output', 'out']:
-                    obj.type = cls.TYPE_OUTPUT
-                else:
-                    raise ValueError("Item type string invalid! Only GENERIC, FILTER, MODIFIER, GROUP, INPUT, OUTPUT allowed!")
-            else:
-                raise TypeError("Item type must be passed either as int or string!")
+            obj.type = cls._fixupType(item_dict['type'])
         else:
             raise KeyError("Could not find 'type' in item dictionary!")
         if 'name' in keys:
-            obj.name = name = ob['name']
+            obj.name = name = item_dict['name']
         else: 
             raise KeyError("Could not find 'name' in item dictionary!")
 
         #Check optional arguments
-        obj.full_name = ob['full_name'] if 'full_name' in keys else name
-        obj.description = ob['description'] if 'description' in keys else ''
-        obj.is_active = ob['is_ative'] if 'is_ative' in keys else True
-        obj.fn = ob['fn'] if 'fn' in keys else None
-        obj.params = ob['params'] if 'params' in keys else []
-        obj.save_info = ob['save_info'] if 'save_info' in keys else []
+        obj.full_name = item_dict['full_name'] if 'full_name' in keys else name
+        obj.description = item_dict['description'] if 'description' in keys else ''
+        obj.is_active = item_dict['is_ative'] if 'is_ative' in keys else True
+        obj.fn = item_dict['fn'] if 'fn' in keys else None
+        if 'param_model' in keys:
+            obj.param_model = ParameterModel.createModel(params=item_dict['param_model'])
+        else:
+            obj.param_model = ParameterModel.createModel()
+        if 'save_model' in keys:
+            obj.save_model = SaveModel.createModel(saves_list=item_dict['save_model']) 
+        else:
+            obj.save_model = SaveModel.createModel()
         if 'children' in keys:
-            children = ob['children']
+            children = item_dict['children']
             if not isinstance(children, list):
                 raise TypeError("Children must be passed in list, not {}".format(type(children)))
             for child in children: 
-                obj.appendRow(FilterItem.toInstance(child))
+                obj.appendRow(FilterItem.createItem(child))
+
+        print("created item20",obj)
+        return obj
+
+    @classmethod
+    def _fixupType(cls, t):
+        if isinstance(t, int):
+            return t
+        elif isinstance(t, str):
+            t = t.lower().strip()
+            if t in ['generic', 'default', 'none']:
+                return cls.TYPE_GENERIC
+            elif t in ['filter']:
+                return cls.TYPE_FILTER
+            elif t in ['modifier']:
+                return cls.TYPE_MODIFIER
+            elif t in ['group', 'folder']:
+                return cls.TYPE_GROUP
+            elif t in ['input', 'in']:
+                return cls.TYPE_INPUT
+            elif t in ['output', 'out']:
+                return cls.TYPE_OUTPUT
+            else:
+                raise ValueError("Item type string invalid! Only GENERIC, FILTER, MODIFIER, GROUP, INPUT, OUTPUT allowed!")
+        else:
+            raise TypeError("Item type must be passed either as int or string!")
+
+    def __repr__(self):
+        return str(self.serialize())
+
+    def __str__(self):
+        return "<FilterItem>"+repr(self)

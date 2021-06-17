@@ -57,7 +57,7 @@ class ParameterModel(QtGui.QStandardItemModel):
         self._readonly = False
 
     @classmethod 
-    def createModel(cls, params):
+    def createModel(cls, params={}):
         """
         Create a new ParameterModel instance.
 
@@ -87,6 +87,7 @@ class ParameterModel(QtGui.QStandardItemModel):
         cls._verifyRoot(root_param)
         obj = cls(root_param)
 
+        print("created param_model",obj)
         return obj
     
     def getValues(self, only_active=True):
@@ -111,7 +112,8 @@ class ParameterModel(QtGui.QStandardItemModel):
 
     def serialize(self):
         """ Return a serialised representation of the entire model. """
-        return self.root_param.serialize()['children']
+        retval = self.root_param.serialize()['children']
+        return retval
 
     def setReadonly(self, readonly=True):
         self._readonly = readonly

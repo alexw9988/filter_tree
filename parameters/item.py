@@ -14,10 +14,10 @@ class NameItem(QtGui.QStandardItem):
     as part of the item's internal data structure and can be accessed
     directly as attributes. 
     """
-    ROLE_TYPE = QtCore.Qt.UserRole + 1
+    ROLE_TYPE = QtCore.Qt.UserRole + 100
     ROLE_FULL_NAME = QtCore.Qt.DisplayRole
     ROLE_DESCRIPTION = QtCore.Qt.ToolTipRole
-    ROLE_OPTIONAL = QtCore.Qt.UserRole + 100
+    ROLE_OPTIONAL = QtCore.Qt.UserRole + 200
     ROLE_IS_ACTIVE = QtCore.Qt.CheckStateRole
 
     def __init__(self, param):
@@ -245,7 +245,7 @@ class Parameter(QtCore.QObject):
         Return a serial representation of the `Parameter` and all its 
         children.
         """
-        return {
+        retval = {
             'type': self.type, 
             'full_name': self.full_name,
             'description': self.description,
@@ -256,6 +256,7 @@ class Parameter(QtCore.QObject):
             'properties': self.properties,
             'children': {child.name: child.serialize() for child in self.children}
         }
+        return retval
 
     def _appendChildren(self, children_dict):
         for child_name, child_opts in children_dict.items():
